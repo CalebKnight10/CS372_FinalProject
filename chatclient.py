@@ -37,7 +37,7 @@ def contentsOfPacket(contents):
 		return payload
 	if contents['type'] == 'chat':
 		payload = (f"{contents['nickname']} {contents['contents']}")
-		return payload
+		return (payload)
 	else:
 		payload = (f"*** {contents['nickname']} left the chat")
 		return payload
@@ -55,13 +55,13 @@ def userInput(nickname, s):
 		# contents = read_command(f"{nickname}>  ")
 		contents = read_command(nickname + "> ")
 		print_message(f"{nickname}: {contents}")
-		if contents[0] == '/q':
+		if contents.startswith('/q'):
+			sys.exit()
 			s.close()
 		elif len(contents) == 0:
 			continue
 		else:
 			s.send(clientsChatPayload(contents).encode())
-
 
 def thread(s):
 	threads = [threading.Thread(target=serverContents(s), args=(s,), daemon=True), threading.Thread(target=serverContents(s), args=(s, nickname))]
@@ -95,6 +95,5 @@ def main(argv):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-
 
 

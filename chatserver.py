@@ -84,6 +84,7 @@ def runServer(port):
                 else:
                 	contents = contents.decode()
                 	packet = json.loads(contents)
+
                 	if packet["type"] == "hello":
                 		print(f"*** {packet['nickname']} joined the chat")
                 		client_buffers[s] = packet["nickname"]
@@ -92,17 +93,6 @@ def runServer(port):
                 	if packet["type"] == "chat":
                 		print(f"{client_buffers[s]}: {packet['contents']}")
                 		messageAll(getServerChatPayload(packet["contents"], client_buffers[s]), client_buffers)
-
-
-def chatPacket(s, contents, client_buffers):
-	contents = contents.decode()
-
-	chat_packet = json.load(contents)
-
-	print(f"*** {join_packet['nickname']} joined the chat")
-	client_buffers[s] = join_packet['nickname']
-	getServerChatPayload(join_packet['nickname'])
-
 
 def main(argv):
 
