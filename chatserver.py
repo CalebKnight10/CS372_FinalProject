@@ -8,13 +8,14 @@ import socket
 import threading
 import json
 import select
+import re
 
 
 # Get the servers chat payload
 def getServerChatPayload(nickname, chat):
     server_chat = {
     "type": "chat",
-    "nick": nickname,
+    "nickname": nickname,
     "message": chat
     }
     return json.dumps(server_chat)
@@ -24,16 +25,22 @@ def getServerChatPayload(nickname, chat):
 def getJoinPayload(name_of_joinee):
     join = {
     "type": "join",
-    "nick": name_of_joinee
+    "nickname": name_of_joinee
     }
     return json.dumps(join)
 
 def getLeavePayload(name_of_leaver):
     leave = {
     "type": "leave",
-    "nick": name_of_leaver
+    "nickname": name_of_leaver
     }
     return json.dumps(leave)
+
+
+def messageAll(contents, client_buffers):
+    print(contents)
+    for client_socket in client_buffers:
+    	client_socket.send(contents.encode())
 
 
 
@@ -69,28 +76,22 @@ def runServer(port):
 
                 # if no content, client disconnected
                 if not contents:
-                    print_client_disconnection(s)
                     s.close()
                     listener.remove(s)
                     client = client_buffers.pop(s)
                     getLeavePayload(client)
                     print(f"*** {client} left the chat")
                 else:
-                	for c in contents.decode():
-                		if re.search('join', c):
-                			joinPacket(s, contents, client_buffers)
-                		else:
-                			chatPacket(s, contents, client_buffers)
+                	contents = contents.decode()
+                	packet = json.loads(contents)
+                	if packet["type"] == "hello":
+                		print(f"*** {packet['nickname']} joined the chat")
+                		client_buffers[s] = packet["nickname"]
+                		messageAll(getJoinPayload(packet["nickname"]), client_buffers)
 
-
-
-def joinPacket(s, contents, client_buffers): 
-	contents = contents.decode()
-
-	join_packet = json.load(contents)
-	print(f"*** {join_packet['nickname']} joined the chat")
-	client_buffers[s] = join_packet['nickname']
-	getJoinPayload(join_packet['nickname'])
+                	if packet["type"] == "chat":
+                		print(f"{client_buffers[s]}: {packet['contents']}")
+                		messageAll(getServerChatPayload(packet["contents"], client_buffers[s]), client_buffers)
 
 
 def chatPacket(s, contents, client_buffers):
@@ -102,12 +103,12 @@ def chatPacket(s, contents, client_buffers):
 	client_buffers[s] = join_packet['nickname']
 	getServerChatPayload(join_packet['nickname'])
 
+
 def main(argv):
 
 	port = int(argv[1])
 
 	runServer(port)
-
 
 
 
