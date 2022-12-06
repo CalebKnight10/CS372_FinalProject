@@ -19,9 +19,8 @@ def helloPayload(nickname):
 
 	return contents
 
-
 # Need to get the clients chat payload
-def clientsChatPayload(contents):
+def clientsChatPayload(contents):   
     client_chat_payload = {
     "type": "chat",
     "contents": contents
@@ -31,26 +30,24 @@ def clientsChatPayload(contents):
     return contents
 
 
-def contentsOfPacket(contents):
-	if contents['type'] == 'join':
-		payload = (f"*** {contents['nickname']} joined the chat")
-		return payload
-	if contents['type'] == 'chat':
-		payload = (f"{contents['nickname']} {contents['contents']}")
-		return (payload)
-	else:
-		payload = (f"*** {contents['nickname']} left the chat")
-		return payload
-
-
 def serverContents(s):
 	while True:
 		contents = s.recv(4096).decode()
 		contents = json.loads(contents)
-		print_message(contentsOfPacket(contents))
+
+		payload = contents
+		if payload['type'] == 'join':
+			payload = (f"*** {payload['nickname']} joined the chat")
+			print_message(payload)
+		elif payload['type'] == 'chat':
+			payload = (f"{payload['nickname']}:{payload['message']}")
+			print_message(payload)
+		else:
+			payload = (f"*** {payload['nickname']} left the chat")
+			print_message(payload)
 
 
-def userInput(nickname, s):
+def userInput(s, nickname):
 	while True:
 		# contents = read_command(f"{nickname}>  ")
 		contents = read_command(nickname + "> ")
@@ -63,13 +60,15 @@ def userInput(nickname, s):
 		else:
 			s.send(clientsChatPayload(contents).encode())
 
-def thread(s):
-	threads = [threading.Thread(target=serverContents(s), args=(s,), daemon=True), threading.Thread(target=serverContents(s), args=(s, nickname))]
-	for t in threads:
-		t.start()
-	threads[1].join()
+def myThread(s, nickname):
+    threads = [threading.Thread(target=serverContents, args=(s, ), daemon=True), threading.Thread(target=userInput, args=(s, nickname))]
 
-	return threads
+    for t in threads:
+        t.start()
+
+    threads[1].join()	
+
+    return threads
 
 
 def main(argv):
@@ -86,7 +85,7 @@ def main(argv):
 	hello_message = helloPayload(nickname).encode()
 	s.send(hello_message)
 
-	thread(s)
+	myThread(s, nickname)
 
 	end_windows()
 
